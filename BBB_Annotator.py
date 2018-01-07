@@ -1,7 +1,26 @@
 # http://effbot.org/tkinterbook/tkinter-application-windows.htm
+import glob
 from enum import Enum
+from random import randint
 from tkinter import *
 from PIL import Image, ImageTk
+import img_rotate
+
+IMAGE_DIMENSIONS = (1000, 750)  # SET TARGET DIMENSIONS HERE
+PATHS = {
+    'incoming': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/INCOMING/',
+    'processed': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/INCOMING/PROCESSED',
+    'final': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/FINAL'
+}
+
+
+def getRandomPicturePathFromPath(path):
+    image_paths = list(glob.glob(path + '/*.jpg'))
+    if len(image_paths) != 0:
+        return image_paths[randint(0, len(image_paths))]  # TODO implement random
+    else:
+        return None
+    # return PATHS['incoming'] + '17-12-20 17-57-02 0100.jpg'  #TODO IMPLEMENT ME
 
 
 class OperationMode(Enum):  # ENUM FOR APPSTATE
@@ -18,11 +37,13 @@ class App:
     def __init__(self, master):
         frame = Frame(master)
         frame.pack()
-        self.imgViewCanvas = Canvas(frame, cnf={"width": 1000, "height": 750})
+        self.imgViewCanvas = Canvas(frame, cnf={"width": IMAGE_DIMENSIONS[0], "height": IMAGE_DIMENSIONS[1]})
         self.imgViewCanvas.pack(side=LEFT)
         self.imgViewCanvas.bind('<Motion>', self.imgViewCanvasMouseMove)
         self.imgViewCanvas.bind('<ButtonRelease-1>', self.imgViewCanvasMouseClick)
-        self.loadPicture('/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/INCOMING/17-12-20 17-57-02 0100.jpg')
+        master.bind('<KeyPress-n>', self.next)
+        master.bind('<KeyPress-N>', self.next)
+        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
         # TODO: Add Status Bar
         # TODO: Add input for brand
         # TODO: Add checkbox for openstate
@@ -59,10 +80,16 @@ class App:
         self.CURRENT_LASTPOINT = (x, y)
         self.imgViewCanvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='green yellow', width=0)
 
+    def next(self, event):
+        # finalize current progress and load next pic
+        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
+        # TODO IMPLEMENT ME
+        return
+
     def loadPicture(self, path):
         im = Image.open(path)
-        # TODO: rotate image according to exif data
-        im = im.resize((1000, 750), resample=Image.LANCZOS)
+        im, _ = img_rotate.fix_orientation(im)
+        im = im.resize(IMAGE_DIMENSIONS, resample=Image.LANCZOS)
         self.imgViewCanvas.image = ImageTk.PhotoImage(im)
         self.imgViewCanvas.create_image(0, 0, anchor='nw', image=self.imgViewCanvas.image)
 

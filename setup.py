@@ -8,5 +8,5 @@ setup(
     license='',
     author='devfoo',
     author_email='',
-    description='', install_requires=['Pillow']
+    description='', install_requires=['Pillow', 'img_rotate']
 )
