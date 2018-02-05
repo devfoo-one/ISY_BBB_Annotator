@@ -5,22 +5,27 @@ from random import randint
 from tkinter import *
 from PIL import Image, ImageTk
 import img_rotate
+import os
 
 IMAGE_DIMENSIONS = (1000, 750)  # SET TARGET DIMENSIONS HERE
 PATHS = {
-    'incoming': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/INCOMING/',
-    'processed': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/INCOMING/PROCESSED',
-    'final': '/home/devfoo/Nextcloud@Beuth/ISY_BBB/images/FINAL'
+    'incoming': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/INCOMING/',
+    'processed': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/INCOMING/PROCESSED',
+    'final': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/FINAL'
 }
 
 
 def getRandomPicturePathFromPath(path):
     image_paths = list(glob.glob(path + '/*.jpg'))
     if len(image_paths) != 0:
-        return image_paths[randint(0, len(image_paths))]  # TODO implement random
+        return image_paths[randint(0, len(image_paths) - 1)]
     else:
         return None
-    # return PATHS['incoming'] + '17-12-20 17-57-02 0100.jpg'  #TODO IMPLEMENT ME
+
+
+def getNextFreeFileID():
+    images = list(glob.glob(PATHS['final'] + '/*.jpg'))
+    return str(len(images)).zfill(8)
 
 
 class OperationMode(Enum):  # ENUM FOR APPSTATE
@@ -33,6 +38,8 @@ class App:
     CURRENT_CROSSHAIR_COLOR = 'red'
     CURRENT_FINAL_QUADS = []
     CURRENT_LASTPOINT = None
+    CURRENT_IMAGE = None
+    CURRENT_IMAGE_PATH = None
 
     def __init__(self, master):
         frame = Frame(master)
@@ -64,6 +71,7 @@ class App:
             return
         if self.CURRENT_EDITMODE is OperationMode.SETPOINT2:
             self.CURRENT_CROSSHAIR_COLOR = 'red'
+            self.showDetailsInput()
             self.CURRENT_EDITMODE = OperationMode.SETPOINT1
             self.addNewPoint(event.x, event.y)
             self.redrawCrosshair(event.x, event.y)
@@ -82,16 +90,45 @@ class App:
 
     def next(self, event):
         # finalize current progress and load next pic
+        newFileId = getNextFreeFileID()
+        self.moveProcessedPictureToProcessedPath()
+        self.copyResizedPictureToFinalPath(newFileId)
+        self.storeBBJSON(newFileId)
         self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
         # TODO IMPLEMENT ME
         return
 
     def loadPicture(self, path):
-        im = Image.open(path)
-        im, _ = img_rotate.fix_orientation(im)
-        im = im.resize(IMAGE_DIMENSIONS, resample=Image.LANCZOS)
-        self.imgViewCanvas.image = ImageTk.PhotoImage(im)
+        self.CURRENT_IMAGE_PATH = path
+        self.CURRENT_IMAGE = Image.open(self.CURRENT_IMAGE_PATH)
+        self.CURRENT_IMAGE, _ = img_rotate.fix_orientation(self.CURRENT_IMAGE)
+        self.CURRENT_IMAGE = self.CURRENT_IMAGE.resize(IMAGE_DIMENSIONS, resample=Image.LANCZOS)
+        self.imgViewCanvas.image = ImageTk.PhotoImage(self.CURRENT_IMAGE)
         self.imgViewCanvas.create_image(0, 0, anchor='nw', image=self.imgViewCanvas.image)
+
+    def storeBBJSON(self, newFileID):
+        # store all bb points in json
+        # TODO IMPLEMENT ME
+        pass
+
+    def showDetailsInput(self):
+        # TODO make modal!
+        detailsPopup = Toplevel(takefocus=True)
+        detailsPopup.geometry('100x100+50+50')
+        detailsPopupOKBtn = Button(detailsPopup, text="OK")
+        detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL")
+        detailsPopupBrandEntry = Entry(detailsPopup)
+        Label(detailsPopup, text='Brand:').pack()
+        detailsPopupBrandEntry.pack()
+        detailsPopupOKBtn.pack()
+        detailsPopupCancelBtn.pack()
+
+    def moveProcessedPictureToProcessedPath(self):
+        filename = os.path.basename(self.CURRENT_IMAGE_PATH)
+        os.rename(self.CURRENT_IMAGE_PATH, PATHS['processed'] + os.sep + filename)
+
+    def copyResizedPictureToFinalPath(self, newFileID):
+        self.CURRENT_IMAGE.save(PATHS['final'] + os.sep + newFileID + '.jpg')
 
 
 root = Tk()
