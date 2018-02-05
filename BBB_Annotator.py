@@ -26,7 +26,7 @@ def getRandomPicturePathFromPath(path):
 
 def getNextFreeFileID():
     images = list(glob.glob(PATHS['final'] + '/*.jpg'))
-    return str(len(images)).zfill(8)
+    return str(len(images)).zfill(4)
 
 
 class OperationMode(Enum):  # ENUM FOR APPSTATE
@@ -110,8 +110,8 @@ class App:
         self.moveProcessedPictureToProcessedPath()
         self.copyResizedPictureToFinalPath(newFileId)
         self.storeBBJSON(newFileId)
-        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
         self.resetState()
+        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
         return
 
     def loadPicture(self, path):
@@ -125,7 +125,7 @@ class App:
     def storeBBJSON(self, newFileID):
         # store all bb points in json
         file = open(PATHS['final'] + os.sep + newFileID + '.json', mode='w', encoding='utf-8')
-        json.dump(self.CURRENT_BB_OBJECTS, file)
+        json.dump(self.CURRENT_BB_OBJECTS, file, sort_keys=True)
         file.close()
 
     def showDetailsInput(self):
