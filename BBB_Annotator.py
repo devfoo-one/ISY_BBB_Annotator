@@ -7,6 +7,7 @@ from PIL import Image, ImageTk
 import img_rotate
 import os
 import json
+from AutocompleteEntry import AutocompleteEntry
 
 IMAGE_DIMENSIONS = (1000, 750)  # SET TARGET DIMENSIONS HERE
 PATHS = {
@@ -35,6 +36,8 @@ class OperationMode(Enum):  # ENUM FOR APPSTATE
 
 class App:
 
+    BEER_BRANDS = set()
+
     def resetState(self):
         self.resetAfterBoundingBoxFinalization()
         self.CURRENT_BB_OBJECTS = []
@@ -51,7 +54,7 @@ class App:
             'brand': None,
             'isOpen': None
         }
-        self.CURRENT_DETAILPOPUP['brand'] = StringVar()
+        # self.CURRENT_DETAILPOPUP['brand'] = StringVar()
         self.CURRENT_DETAILPOPUP['isOpen'] = IntVar()
 
     def __init__(self, master):
@@ -133,20 +136,20 @@ class App:
         self.detailsPopup = detailsPopup
         detailsPopup.grab_set()
         detailsPopup.geometry('200x200+50+50')
-        detailsPopupBrandEntry = Entry(detailsPopup, textvariable=self.CURRENT_DETAILPOPUP['brand'])
-        detailsPopupBrandEntry.focus_set()
+        self.detailsPopupBrandEntry = AutocompleteEntry(list(self.BEER_BRANDS), detailsPopup)
+        self.detailsPopupBrandEntry.focus_set()
         detailsPopupOpenCheckbox = Checkbutton(detailsPopup, text='is open?', variable=self.CURRENT_DETAILPOPUP['isOpen'])
         detailsPopupOpenCheckbox.select()
         detailsPopupOKBtn = Button(detailsPopup, text="OK", command=self.detailsInputOKClick)
         detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL")
         Label(detailsPopup, text='Brand:').pack()
-        detailsPopupBrandEntry.pack()
+        self.detailsPopupBrandEntry.pack()
         detailsPopupOpenCheckbox.pack()
         detailsPopupOKBtn.pack()
         detailsPopupCancelBtn.pack()
 
     def detailsInputOKClick(self):
-        brand = self.CURRENT_DETAILPOPUP['brand'].get()
+        brand = self.detailsPopupBrandEntry.get()
         isOpen = self.CURRENT_DETAILPOPUP['isOpen'].get()
         print(brand, isOpen)
         self.finalizeCurrentBBEntry(brand, isOpen)
@@ -174,6 +177,7 @@ class App:
             'w' : w,
             'h' : h
         })
+        self.BEER_BRANDS.add(brand)
 
     def moveProcessedPictureToProcessedPath(self):
         filename = os.path.basename(self.CURRENT_IMAGE_PATH)
