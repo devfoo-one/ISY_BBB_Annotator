@@ -107,12 +107,14 @@ class App:
         self.CURRENT_LASTPOINT = (x, y)
         self.imgViewCanvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='green yellow', width=0)
 
-    def next(self, event):
+    def next(self):
         # finalize current progress and load next pic
-        newFileId = getNextFreeFileID()
-        self.moveProcessedPictureToProcessedPath()
-        self.copyResizedPictureToFinalPath(newFileId)
-        self.storeBBJSON(newFileId)
+        if len(self.CURRENT_BB_OBJECTS) > 0:
+            newFileId = getNextFreeFileID()
+            self.moveProcessedPictureToProcessedPath()
+            self.copyResizedPictureToFinalPath(newFileId)
+            self.storeBBJSON(newFileId)
+
         self.resetState()
         self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
         return
