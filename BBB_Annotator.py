@@ -141,7 +141,7 @@ class App:
         detailsPopupOpenCheckbox = Checkbutton(detailsPopup, text='is open?', variable=self.CURRENT_DETAILPOPUP['isOpen'])
         detailsPopupOpenCheckbox.select()
         detailsPopupOKBtn = Button(detailsPopup, text="OK", command=self.detailsInputOKClick)
-        detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL")
+        detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL", command=self.detailsInputCancelClick)
         Label(detailsPopup, text='Brand:').pack()
         self.detailsPopupBrandEntry.pack()
         detailsPopupOpenCheckbox.pack()
@@ -155,11 +155,10 @@ class App:
         self.finalizeCurrentBBEntry(brand, isOpen)
         self.resetAfterBoundingBoxFinalization()
         self.detailsPopup.destroy()
-        pass
 
     def detailsInputCancelClick(self):
-        # delete current in-progress bounding box
-        pass
+        self.resetAfterBoundingBoxFinalization()
+        self.detailsPopup.destroy()
 
     def finalizeCurrentBBEntry(self, brand, isOpen):
         (p0x,p0y) = self.CURRENT_POINT0
