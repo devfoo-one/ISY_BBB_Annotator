@@ -6,6 +6,7 @@ from tkinter import *
 from PIL import Image, ImageTk
 import img_rotate
 import os
+import json
 
 IMAGE_DIMENSIONS = (1000, 750)  # SET TARGET DIMENSIONS HERE
 PATHS = {
@@ -32,16 +33,29 @@ class OperationMode(Enum):  # ENUM FOR APPSTATE
     SETPOINT1 = 1
     SETPOINT2 = 2
 
-
 class App:
-    CURRENT_EDITMODE = OperationMode.SETPOINT1
-    CURRENT_CROSSHAIR_COLOR = 'red'
-    CURRENT_FINAL_QUADS = []
-    CURRENT_LASTPOINT = None
-    CURRENT_IMAGE = None
-    CURRENT_IMAGE_PATH = None
+
+    def resetState(self):
+        self.resetAfterBoundingBoxFinalization()
+        self.CURRENT_BB_OBJECTS = []
+        self.CURRENT_IMAGE = None
+        self.CURRENT_IMAGE_PATH = None
+
+    def resetAfterBoundingBoxFinalization(self):
+        self.CURRENT_EDITMODE = OperationMode.SETPOINT1
+        self.CURRENT_CROSSHAIR_COLOR = 'red'
+        self.CURRENT_POINT0 = None
+        self.CURRENT_POINT1 = None
+        self.CURRENT_LASTPOINT = None
+        self.CURRENT_DETAILPOPUP = {
+            'brand': None,
+            'isOpen': None
+        }
+        self.CURRENT_DETAILPOPUP['brand'] = StringVar()
+        self.CURRENT_DETAILPOPUP['isOpen'] = IntVar()
 
     def __init__(self, master):
+        self.resetState()
         frame = Frame(master)
         frame.pack()
         self.imgViewCanvas = Canvas(frame, cnf={"width": IMAGE_DIMENSIONS[0], "height": IMAGE_DIMENSIONS[1]})
@@ -65,16 +79,18 @@ class App:
     def imgViewCanvasMouseClick(self, event):
         if self.CURRENT_EDITMODE is OperationMode.SETPOINT1:
             self.CURRENT_CROSSHAIR_COLOR = 'green yellow'
-            self.CURRENT_EDITMODE = OperationMode.SETPOINT2
+            self.CURRENT_POINT0 = (event.x, event.y)
             self.addNewPoint(event.x, event.y)
             self.redrawCrosshair(event.x, event.y)
+            self.CURRENT_EDITMODE = OperationMode.SETPOINT2
             return
         if self.CURRENT_EDITMODE is OperationMode.SETPOINT2:
             self.CURRENT_CROSSHAIR_COLOR = 'red'
-            self.showDetailsInput()
-            self.CURRENT_EDITMODE = OperationMode.SETPOINT1
+            self.CURRENT_POINT1 = (event.x, event.y)
             self.addNewPoint(event.x, event.y)
             self.redrawCrosshair(event.x, event.y)
+            self.showDetailsInput()
+            self.CURRENT_EDITMODE = OperationMode.SETPOINT1
             return
 
     def redrawCrosshair(self, x, y):
@@ -95,7 +111,7 @@ class App:
         self.copyResizedPictureToFinalPath(newFileId)
         self.storeBBJSON(newFileId)
         self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
-        # TODO IMPLEMENT ME
+        self.resetState()
         return
 
     def loadPicture(self, path):
@@ -108,20 +124,56 @@ class App:
 
     def storeBBJSON(self, newFileID):
         # store all bb points in json
-        # TODO IMPLEMENT ME
-        pass
+        file = open(PATHS['final'] + os.sep + newFileID + '.json', mode='w', encoding='utf-8')
+        json.dump(self.CURRENT_BB_OBJECTS, file)
+        file.close()
 
     def showDetailsInput(self):
-        # TODO make modal!
         detailsPopup = Toplevel(takefocus=True)
-        detailsPopup.geometry('100x100+50+50')
-        detailsPopupOKBtn = Button(detailsPopup, text="OK")
+        self.detailsPopup = detailsPopup
+        detailsPopup.grab_set()
+        detailsPopup.geometry('200x200+50+50')
+        detailsPopupBrandEntry = Entry(detailsPopup, textvariable=self.CURRENT_DETAILPOPUP['brand'])
+        detailsPopupBrandEntry.focus_set()
+        detailsPopupOpenCheckbox = Checkbutton(detailsPopup, text='is open?', variable=self.CURRENT_DETAILPOPUP['isOpen'])
+        detailsPopupOpenCheckbox.select()
+        detailsPopupOKBtn = Button(detailsPopup, text="OK", command=self.detailsInputOKClick)
         detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL")
-        detailsPopupBrandEntry = Entry(detailsPopup)
         Label(detailsPopup, text='Brand:').pack()
         detailsPopupBrandEntry.pack()
+        detailsPopupOpenCheckbox.pack()
         detailsPopupOKBtn.pack()
         detailsPopupCancelBtn.pack()
+
+    def detailsInputOKClick(self):
+        brand = self.CURRENT_DETAILPOPUP['brand'].get()
+        isOpen = self.CURRENT_DETAILPOPUP['isOpen'].get()
+        print(brand, isOpen)
+        self.finalizeCurrentBBEntry(brand, isOpen)
+        self.resetAfterBoundingBoxFinalization()
+        self.detailsPopup.destroy()
+        pass
+
+    def detailsInputCancelClick(self):
+        # delete current in-progress bounding box
+        pass
+
+    def finalizeCurrentBBEntry(self, brand, isOpen):
+        (p0x,p0y) = self.CURRENT_POINT0
+        (p1x,p1y) = self.CURRENT_POINT1
+        isOpen = (bool(isOpen))
+        x = min(p0x, p1x)
+        y = min(p0y, p1y)
+        w = max(p0x, p1x) - x
+        h = max(p0y, p1y) - y
+        self.CURRENT_BB_OBJECTS.append({
+            'brand' : brand,
+            'isOpen' : isOpen,
+            'x' : x,
+            'y' : y,
+            'w' : w,
+            'h' : h
+        })
 
     def moveProcessedPictureToProcessedPath(self):
         filename = os.path.basename(self.CURRENT_IMAGE_PATH)
