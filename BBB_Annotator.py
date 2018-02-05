@@ -22,7 +22,8 @@ def getRandomPicturePathFromPath(path):
     if len(image_paths) != 0:
         return image_paths[randint(0, len(image_paths) - 1)]
     else:
-        return None
+        print("No images to process, quitting.")
+        exit(1)
 
 
 def getNextFreeFileID():
