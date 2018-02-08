@@ -35,8 +35,8 @@ class OperationMode(Enum):  # ENUM FOR APPSTATE
     SETPOINT1 = 1
     SETPOINT2 = 2
 
-class App:
 
+class App:
     BEER_BRANDS = set()
 
     def resetState(self):
@@ -55,7 +55,6 @@ class App:
             'brand': None,
             'isOpen': None
         }
-        # self.CURRENT_DETAILPOPUP['brand'] = StringVar()
         self.CURRENT_DETAILPOPUP['isOpen'] = IntVar()
 
     def __init__(self, master):
@@ -106,18 +105,6 @@ class App:
         self.CURRENT_LASTPOINT = (x, y)
         self.imgViewCanvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='green yellow', width=0)
 
-    def next(self, event):
-        # finalize current progress and load next pic
-        if len(self.CURRENT_BB_OBJECTS) > 0:
-            newFileId = getNextFreeFileID()
-            self.moveProcessedPictureToProcessedPath()
-            self.copyResizedPictureToFinalPath(newFileId)
-            self.storeBBJSON(newFileId)
-
-        self.resetState()
-        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
-        return
-
     def loadPicture(self, path):
         self.CURRENT_IMAGE_PATH = path
         self.CURRENT_IMAGE = Image.open(self.CURRENT_IMAGE_PATH)
@@ -130,12 +117,6 @@ class App:
         self.imgViewCanvas.create_image(0, 0, anchor='nw', image=self.imgViewCanvas.image)
         self.master.title(os.path.basename(self.CURRENT_IMAGE_PATH))
 
-    def storeBBJSON(self, newFileID):
-        # store all bb points in json
-        file = open(PATHS['final'] + os.sep + newFileID + '.json', mode='w', encoding='utf-8')
-        json.dump(self.CURRENT_BB_OBJECTS, file, sort_keys=True)
-        file.close()
-
     def showDetailsInput(self):
         detailsPopup = Toplevel(takefocus=True)
         self.detailsPopup = detailsPopup
@@ -143,7 +124,8 @@ class App:
         detailsPopup.geometry('200x200+50+50')
         self.detailsPopupBrandEntry = AutocompleteEntry(list(self.BEER_BRANDS), detailsPopup)
         self.detailsPopupBrandEntry.focus_set()
-        detailsPopupOpenCheckbox = Checkbutton(detailsPopup, text='is open?', variable=self.CURRENT_DETAILPOPUP['isOpen'])
+        detailsPopupOpenCheckbox = Checkbutton(detailsPopup, text='is open?',
+                                               variable=self.CURRENT_DETAILPOPUP['isOpen'])
         detailsPopupOpenCheckbox.select()
         detailsPopupOKBtn = Button(detailsPopup, text="OK", command=self.detailsInputOKClick)
         detailsPopupCancelBtn = Button(detailsPopup, text="CANCEL", command=self.detailsInputCancelClick)
@@ -156,7 +138,6 @@ class App:
     def detailsInputOKClick(self):
         brand = self.detailsPopupBrandEntry.get()
         isOpen = self.CURRENT_DETAILPOPUP['isOpen'].get()
-        print(brand, isOpen)
         self.finalizeCurrentBBEntry(brand, isOpen)
         self.resetAfterBoundingBoxFinalization()
         self.detailsPopup.destroy()
@@ -166,22 +147,33 @@ class App:
         self.detailsPopup.destroy()
 
     def finalizeCurrentBBEntry(self, brand, isOpen):
-        (p0x,p0y) = self.CURRENT_POINT0
-        (p1x,p1y) = self.CURRENT_POINT1
+        (p0x, p0y) = self.CURRENT_POINT0
+        (p1x, p1y) = self.CURRENT_POINT1
         isOpen = (bool(isOpen))
         x = min(p0x, p1x)
         y = min(p0y, p1y)
         w = max(p0x, p1x) - x
         h = max(p0y, p1y) - y
         self.CURRENT_BB_OBJECTS.append({
-            'brand' : brand,
-            'isOpen' : isOpen,
-            'x' : x,
-            'y' : y,
-            'w' : w,
-            'h' : h
+            'brand': brand,
+            'isOpen': isOpen,
+            'x': x,
+            'y': y,
+            'w': w,
+            'h': h
         })
         self.BEER_BRANDS.add(brand)
+
+    def next(self, event):
+        # finalize current progress and load next pic
+        if len(self.CURRENT_BB_OBJECTS) > 0:
+            newFileId = getNextFreeFileID()
+            self.moveProcessedPictureToProcessedPath()
+            self.copyResizedPictureToFinalPath(newFileId)
+            self.storeBBJSON(newFileId)
+        self.resetState()
+        self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
+        return
 
     def moveProcessedPictureToProcessedPath(self):
         filename = os.path.basename(self.CURRENT_IMAGE_PATH)
@@ -189,6 +181,12 @@ class App:
 
     def copyResizedPictureToFinalPath(self, newFileID):
         self.CURRENT_IMAGE.save(PATHS['final'] + os.sep + newFileID + '.jpg')
+
+    def storeBBJSON(self, newFileID):
+        # store all bb points in json
+        file = open(PATHS['final'] + os.sep + newFileID + '.json', mode='w', encoding='utf-8')
+        json.dump(self.CURRENT_BB_OBJECTS, file, sort_keys=True)
+        file.close()
 
 
 root = Tk()
