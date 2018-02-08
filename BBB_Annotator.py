@@ -60,6 +60,7 @@ class App:
 
     def __init__(self, master):
         self.resetState()
+        self.master = master
         frame = Frame(master)
         frame.pack()
         self.imgViewCanvas = Canvas(frame, cnf={"width": IMAGE_DIMENSIONS[0], "height": IMAGE_DIMENSIONS[1]})
@@ -69,9 +70,6 @@ class App:
         master.bind('<KeyPress-n>', self.next)
         master.bind('<KeyPress-N>', self.next)
         self.loadPicture(getRandomPicturePathFromPath(PATHS['incoming']))
-        # TODO: Add Status Bar
-        # TODO: Add input for brand
-        # TODO: Add checkbox for openstate
 
     def imgViewCanvasMouseMove(self, event):
         self.redrawCrosshair(event.x, event.y)
@@ -108,7 +106,7 @@ class App:
         self.CURRENT_LASTPOINT = (x, y)
         self.imgViewCanvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill='green yellow', width=0)
 
-    def next(self):
+    def next(self, event):
         # finalize current progress and load next pic
         if len(self.CURRENT_BB_OBJECTS) > 0:
             newFileId = getNextFreeFileID()
@@ -123,10 +121,14 @@ class App:
     def loadPicture(self, path):
         self.CURRENT_IMAGE_PATH = path
         self.CURRENT_IMAGE = Image.open(self.CURRENT_IMAGE_PATH)
-        self.CURRENT_IMAGE, _ = img_rotate.fix_orientation(self.CURRENT_IMAGE)
+        try:
+            self.CURRENT_IMAGE, _ = img_rotate.fix_orientation(self.CURRENT_IMAGE)
+        except ValueError as e:
+            print('Could not rotate', os.path.basename(path), '-', e)
         self.CURRENT_IMAGE = self.CURRENT_IMAGE.resize(IMAGE_DIMENSIONS, resample=Image.LANCZOS)
         self.imgViewCanvas.image = ImageTk.PhotoImage(self.CURRENT_IMAGE)
         self.imgViewCanvas.create_image(0, 0, anchor='nw', image=self.imgViewCanvas.image)
+        self.master.title(os.path.basename(self.CURRENT_IMAGE_PATH))
 
     def storeBBJSON(self, newFileID):
         # store all bb points in json
