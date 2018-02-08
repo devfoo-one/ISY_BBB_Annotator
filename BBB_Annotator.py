@@ -1,4 +1,5 @@
-# http://effbot.org/tkinterbook/tkinter-application-windows.htm
+#!/usr/bin/env python3
+
 import glob
 from enum import Enum
 from random import randint
@@ -8,14 +9,7 @@ import img_rotate
 import os
 import json
 from AutocompleteEntry import AutocompleteEntry
-
-IMAGE_DIMENSIONS = (1000, 750)  # SET TARGET DIMENSIONS HERE
-PATHS = {
-    'incoming': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/INCOMING/',
-    'processed': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/INCOMING/PROCESSED',
-    'final': '/home/devfoo/Nextcloud@Beuth/ISY_BBB_PLAYGROUND/images/FINAL'
-}
-
+from config import PATHS, IMAGE_DIMENSIONS
 
 def getRandomPicturePathFromPath(path):
     image_paths = list(glob.glob(path + '/*.jpg'))
